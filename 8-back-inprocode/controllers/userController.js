@@ -22,3 +22,11 @@ exports.deleteUser = async (req, res) => {
   await User.findByIdAndDelete(id);
   res.sendStatus(204);
 };
+
+
+exports.createUser = async (req, res) => {
+  console.log('Dades rebudes:', req.body) // <-- Comprovació
+  const user = new User(req.body)
+  const saved = await user.save()
+  res.status(201).json(saved)
+}
