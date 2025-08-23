@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Mapa from './pages/Mapa'
 import Calendar from './pages/Calendar'
 import Grafics from './pages/Grafics'
+import Plugins from './pages/Plugins'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/grafics" element={<Grafics />} />
+          <Route path="/plugins" element={<Plugins />} />
         </Routes>
       </main>
     </>
