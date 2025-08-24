@@ -160,7 +160,7 @@ export default function Mapa() {
     <div className="pt-16 h-[calc(100vh-64px)] flex flex-col">
 
       {/* 🔍 Buscador */}
-      <div className="relative z-50 w-full max-w-2xl mx-auto p-4 bg-white">
+      <div className="relative z-10 w-full max-w-2xl mx-auto p-4 bg-white">
         <input
           type="text"
           placeholder="Cerca un lloc del món"
@@ -237,7 +237,7 @@ export default function Mapa() {
       </div>
 
       {/* 🗺️ Mapa */}
-      <div className="flex-grow mt-4 mb-8">
+      <div className="relative z-20 flex-grow mt-4 mb-8">
         <MapContainer center={[41.3874, 2.1699]} zoom={13} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
