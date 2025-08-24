@@ -1,8 +1,9 @@
-const express = require('express');
-const router = express.Router();
-const { getAllPlugins, createPlugin } = require('../controllers/pluginController');
+import express from 'express'
+import { getAllPlugins, createPlugin } from '../controllers/pluginController.js'
 
-router.get('/', getAllPlugins);
-router.post('/', createPlugin);
+const router = express.Router()
 
-module.exports = router;
+router.get('/', getAllPlugins)
+router.post('/', createPlugin)
+
+export default router

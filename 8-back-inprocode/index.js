@@ -1,24 +1,22 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const connectDB = require('./config/db');
-const userRoutes = require('./routes/userRoutes');
-const locationRoutes = require('./routes/locationRoutes');
-const eventsRoutes = require('./routes/events');
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import connectDB from './config/db.js'
+import userRoutes from './routes/userRoutes.js'
+import locationRoutes from './routes/locationRoutes.js'
+import eventsRoutes from './routes/events.js'
+import pluginRoutes from './routes/pluginRoutes.js'
 
+dotenv.config()
+connectDB()
 
-dotenv.config();
-connectDB();
+const app = express()
+app.use(cors())
+app.use(express.json())
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const pluginRoutes = require('./routes/pluginRoutes');
 app.use('/api/plugins', pluginRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/locations', locationRoutes);
-app.use('/api/events', eventsRoutes)
 
 app.get('/', (req, res) => {
   res.send('API funcionant ✅');
