@@ -28,8 +28,8 @@ type Suggestion = {
 
 const categoryColors: Record<string, string> = {
   restaurant: 'bg-red-500',
-  museum: 'bg-blue-500',
-  park: 'bg-green-500',
+  museu: 'bg-blue-500',
+  parking: 'bg-green-500',
   hotel: 'bg-yellow-500',
   ruta: 'bg-purple-500',
 }
@@ -70,7 +70,7 @@ export default function Mapa() {
   const [form, setForm] = useState<Location>({ name: '', lat: 0, lng: 0, category: 'restaurant' })
   const [search, setSearch] = useState('')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [filters, setFilters] = useState<string[]>(['restaurant', 'museum', 'park', 'hotel', 'ruta'])
+  const [filters, setFilters] = useState<string[]>(['restaurant', 'museu', 'parking', 'hotel', 'ruta'])
   const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -216,8 +216,8 @@ export default function Mapa() {
         />
         <select name="category" value={form.category} onChange={handleChange} className="border p-2 rounded w-[160px]">
           <option value="restaurant">Restaurant</option>
-          <option value="museum">Museum</option>
-          <option value="park">Park</option>
+          <option value="museu">Museu</option>
+          <option value="parking">Parking</option>
           <option value="hotel">Hotel</option>
           <option value="ruta">Ruta</option>
         </select>
@@ -228,7 +228,7 @@ export default function Mapa() {
 
       {/* ✅ Filtres */}
       <div className="flex gap-4 justify-center mt-4 mb-2 bg-white p-2 shadow flex-wrap">
-        {['restaurant', 'museum', 'park', 'hotel', 'ruta'].map(cat => (
+        {['restaurant', 'museu', 'parking', 'hotel', 'ruta'].map(cat => (
           <label key={cat} className="flex items-center gap-1">
             <input type="checkbox" checked={filters.includes(cat)} onChange={() => toggleCategory(cat)} />
             <span className="capitalize">{cat}</span>

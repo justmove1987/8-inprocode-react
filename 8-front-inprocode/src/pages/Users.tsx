@@ -96,13 +96,13 @@ export default function Users() {
       <table className="w-full table-auto border border-gray-300">
         <thead className="bg-gray-200">
           <tr>
-            <th className="p-2">First</th>
-            <th className="p-2">Last</th>
+            <th className="p-2">Nom</th>
+            <th className="p-2">Cognom</th>
             <th className="p-2">Email</th>
-            <th className="p-2">Phone</th>
-            <th className="p-2">Location</th>
+            <th className="p-2">Telèfon</th>
+            <th className="p-2">Ubicació</th>
             <th className="p-2">Hobby</th>
-            <th className="p-2">Actions</th>
+            <th className="p-2">Accions</th>
           </tr>
         </thead>
         <tbody>
