@@ -39,7 +39,7 @@ const getCustomIcon = (category: string) =>
     className: '',
     html: `
       <div class="w-10 h-10 ${categoryColors[category] || 'bg-gray-400'} rounded-full flex items-center justify-center border-2 border-white shadow-md">
-        <img src="../src/assets/${category}.png" class="w-5 h-5 object-contain" />
+        <img src="/icons/${category}.png" class="w-5 h-5 object-contain" />
       </div>
     `,
     iconSize: [40, 40],
