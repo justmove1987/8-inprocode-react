@@ -11,14 +11,13 @@ dotenv.config()
 connectDB()
 
 const app = express()
-app.use(cors({
-  origin: [
-    'http://localhost:5173', // per desenvolupar
-    'https://inprocode-frontend-rt1g.vercel.app/', // canvia això pel domini real si cal
-    'https://inprocode-frontend-hod6-4pqeivhpj-enrics-projects-a7369bb5.vercel.app' // subdomini de Vercel
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-}))
+app.use(
+  cors({
+    origin: 'https://inprocode-frontend-rt1g.vercel.app', // ✅ CAMBIA si tu frontend tiene otro dominio
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+)
 app.use(express.json())
 
 app.use('/api/plugins', pluginRoutes);
