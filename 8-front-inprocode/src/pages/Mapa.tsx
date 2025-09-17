@@ -18,6 +18,7 @@ type Location = {
   lat: number
   lng: number
   category: string
+  userId?: string
 }
 
 type Suggestion = {
@@ -32,22 +33,54 @@ const categoryColors: Record<string, string> = {
   parking: 'bg-green-500',
   hotel: 'bg-yellow-500',
   ruta: 'bg-purple-500',
+  usuari: 'bg-black',
 }
 
-const getCustomIcon = (category: string) =>
-  L.divIcon({
+const categoryIcons: Record<string, string> = {
+  restaurant: 'png',
+  museu: 'png',
+  parking: 'png',
+  hotel: 'png',
+  ruta: 'png',
+  usuari: 'svg', // ✅ La icona per usuaris
+}
+
+const jitter = () => (Math.random() - 0.5) * 0.0005
+
+const getCustomIcon = (category: string) => {
+  const ext = categoryIcons[category] || 'svg'
+  return L.divIcon({
     className: '',
     html: `
       <div class="w-10 h-10 ${categoryColors[category] || 'bg-gray-400'} rounded-full flex items-center justify-center border-2 border-white shadow-md">
-        <img src="../src/assets/${category}.png" class="w-5 h-5 object-contain" />
+        <img src="/icons/${category}.${ext}" class="w-5 h-5 object-contain" />
       </div>
     `,
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
   })
+}
 
 const getIconForLocation = (loc: Location, index: number) => {
+  if (loc.userId) {
+    const latOffset = jitter()
+    const lngOffset = jitter()
+    loc.lat += latOffset
+    loc.lng += lngOffset
+    return L.divIcon({
+      className: '',
+      html: `
+        <div class="w-8 h-8 bg-black rounded-full border-2 border-white shadow-md flex items-center justify-center">
+          <img class="w-4 h-4" src="/icons/usuari.svg" />
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    })
+  }
+
   if (loc.category === 'ruta') {
     return L.divIcon({
       className: '',
@@ -67,10 +100,10 @@ const getIconForLocation = (loc: Location, index: number) => {
 
 export default function Mapa() {
   const [locations, setLocations] = useState<Location[]>([])
-  const [form, setForm] = useState<Location>({ name: '', lat: 0, lng: 0, category: 'restaurant' })
+  const [form, setForm] = useState<Location>({ name: '', lat: 0, lng: 0, category: '' })
   const [search, setSearch] = useState('')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [filters, setFilters] = useState<string[]>(['restaurant', 'museu', 'parking', 'hotel', 'ruta'])
+  const [filters, setFilters] = useState<string[]>(['restaurant', 'museu', 'parking', 'hotel', 'ruta', 'usuari'])
   const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -78,7 +111,7 @@ export default function Mapa() {
   }, [])
 
   const fetchLocations = async () => {
-    const res = await fetch('http://localhost:3000/api/locations')
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/locations`)
     const data = await res.json()
     setLocations(data)
   }
@@ -91,47 +124,14 @@ export default function Mapa() {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (editingId) {
-      await fetch(`http://localhost:3000/api/locations/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      setEditingId(null)
-    } else {
-      await fetch('http://localhost:3000/api/locations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-    }
-
-    setForm({ name: '', lat: 0, lng: 0, category: 'restaurant' })
-    fetchLocations()
-  }
-
-  const handleDelete = async (id?: string) => {
-    if (!id) return
-    await fetch(`http://localhost:3000/api/locations/${id}`, {
-      method: 'DELETE',
-    })
-    fetchLocations()
-  }
-
-  const handleEdit = (loc: Location) => {
-    setForm(loc)
-    setEditingId(loc._id ?? null)
-  }
-
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearch(value)
 
     if (value.length > 2) {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}&limit=5`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}&limit=5`, {
+        headers: { 'User-Agent': 'inprocode-app' },
+      })
       const data = await res.json()
       setSuggestions(data)
     } else {
@@ -146,8 +146,45 @@ export default function Mapa() {
       lat: parseFloat(place.lat),
       lng: parseFloat(place.lon),
     }))
-    setSearch('')
+    setSearch(place.display_name)
     setSuggestions([])
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (editingId) {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/locations/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      setEditingId(null)
+    } else {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+    }
+
+    setForm({ name: '', lat: 0, lng: 0, category: 'restaurant' })
+    setSearch('')
+    fetchLocations()
+  }
+
+  const handleDelete = async (id?: string) => {
+    if (!id) return
+    await fetch(`${import.meta.env.VITE_API_URL}/api/locations/${id}`, {
+      method: 'DELETE',
+    })
+    fetchLocations()
+  }
+
+  const handleEdit = (loc: Location) => {
+    setForm(loc)
+    setEditingId(loc._id ?? null)
+    setSearch(loc.name)
   }
 
   const toggleCategory = (cat: string) => {
@@ -158,77 +195,60 @@ export default function Mapa() {
 
   return (
     <div className="pt-16 h-[calc(100vh-64px)] flex flex-col">
-
       {/* 🔍 Buscador */}
-      <div className="relative z-10 w-full max-w-2xl mx-auto p-4 bg-white">
-        <input
-          type="text"
-          placeholder="Cerca un lloc del món"
-          value={search}
-          onChange={handleSearchChange}
-          className="border p-2 rounded w-full"
-        />
-        {suggestions.length > 0 && (
-          <ul className="absolute top-14 left-0 w-full bg-white border rounded z-10 shadow max-h-60 overflow-y-auto">
-            {suggestions.map((sug, i) => (
-              <li
-                key={i}
-                onClick={() => handleSuggestionClick(sug)}
-                className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-              >
-                {sug.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-4 shadow flex flex-wrap gap-4 items-center justify-center max-w-5xl mx-auto w-full"
+      >
+        <div className="relative w-[300px]">
+          <input
+            type="text"
+            value={search}
+            onChange={handleSearchChange}
+            placeholder="Busca una ubicació"
+            className="border p-2 rounded w-full"
+            required
+          />
+          {suggestions.length > 0 && (
+            <ul className="absolute z-20 bg-white border rounded w-full mt-1 shadow max-h-60 overflow-y-auto">
+              {suggestions.map((sug, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSuggestionClick(sug)}
+                  className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                >
+                  {sug.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-      {/* 📝 Formulari */}
-      <form onSubmit={handleSubmit} className="bg-white p-4 shadow flex flex-wrap gap-4 items-center justify-center max-w-5xl mx-auto w-full">
-        <input
-          type="text"
-          name="name"
-          placeholder="Nom"
-          value={form.name}
+        <select
+          name="category"
+          value={form.category}
           onChange={handleChange}
-          className="border p-2 rounded w-[200px]"
-          required
-        />
-        <input
-          type="number"
-          name="lat"
-          placeholder="Latitud"
-          value={form.lat}
-          onChange={handleChange}
-          className="border p-2 rounded w-[120px]"
-          step="any"
-          required
-        />
-        <input
-          type="number"
-          name="lng"
-          placeholder="Longitud"
-          value={form.lng}
-          onChange={handleChange}
-          className="border p-2 rounded w-[120px]"
-          step="any"
-          required
-        />
-        <select name="category" value={form.category} onChange={handleChange} className="border p-2 rounded w-[160px]">
+          className="border p-2 rounded w-[160px]"
+        >
           <option value="restaurant">Restaurant</option>
           <option value="museu">Museu</option>
           <option value="parking">Parking</option>
           <option value="hotel">Hotel</option>
           <option value="ruta">Ruta</option>
         </select>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          {editingId ? 'Desar canvis' : 'Afegir'}
+
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          disabled={!form.lat || !form.lng || !form.name}
+        >
+          {editingId ? 'Desar canvis' : 'Afegir punt'}
         </button>
       </form>
 
       {/* ✅ Filtres */}
       <div className="flex gap-4 justify-center mt-4 mb-2 bg-white p-2 shadow flex-wrap">
-        {['restaurant', 'museu', 'parking', 'hotel', 'ruta'].map(cat => (
+        {['restaurant', 'museu', 'parking', 'hotel', 'ruta', 'usuari'].map(cat => (
           <label key={cat} className="flex items-center gap-1">
             <input type="checkbox" checked={filters.includes(cat)} onChange={() => toggleCategory(cat)} />
             <span className="capitalize">{cat}</span>

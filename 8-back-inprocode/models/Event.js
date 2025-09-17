@@ -1,10 +1,15 @@
+// models/Event.js
 import mongoose from 'mongoose'
 
-const EventSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  start: { type: String, required: true },
-  end: { type: String, required: true },
-  backgroundColor: { type: String }
+const eventSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  title: String,
+  start: String,
+  end: String,
+  backgroundColor: String,
+  userId: String
 })
 
-export default mongoose.model('Event', EventSchema)
+
+export default mongoose.model('Event', eventSchema)
+

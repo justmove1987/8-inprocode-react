@@ -23,6 +23,7 @@ export default function Users() {
   const [users, setUsers] = useState<User[]>([])
   const [form, setForm] = useState<User>(defaultUser)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([])
 
   const API = 'http://localhost:3000/api/users'
 
@@ -31,30 +32,71 @@ export default function Users() {
   }, [])
 
   const fetchUsers = async () => {
-    const res = await fetch(API)
-    const data = await res.json()
-    setUsers(data)
+    try {
+      const res = await fetch(API)
+      const data = await res.json()
+      setUsers(data)
+    } catch (error) {
+      console.error('❌ Error carregant usuaris:', error)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setForm({ ...form, [name]: value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const method = editingId ? 'PUT' : 'POST'
-    const url = editingId ? `${API}/${editingId}` : API
+  const handleLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setForm({ ...form, location: value })
 
-    await fetch(url, {
+    if (value.length < 3) return
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}`, {
+        headers: {
+          'User-Agent': 'inprocode-app'
+        }
+      })
+      const data = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const suggestions = data.map((item: any) => item.display_name)
+      setLocationSuggestions(suggestions)
+    } catch (err) {
+      console.error('❌ Error buscant ubicacions:', err)
+    }
+  }
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+
+  console.log("📤 Enviant al backend:", form)
+
+  const method = editingId ? 'PUT' : 'POST'
+  const url = editingId ? `${API}/${editingId}` : API
+
+  try {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(form), // 🟢 ARA enviem tot correctament
     })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      console.error('❌ Error:', data)
+      return
+    }
 
     setForm(defaultUser)
     setEditingId(null)
     fetchUsers()
+  } catch (error) {
+    console.error('❌ Error enviant usuari:', error)
   }
+}
+
 
   const handleEdit = (user: User) => {
     setForm(user)
@@ -70,10 +112,10 @@ export default function Users() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">CRUD d'Usuaris</h2>
+      <h2 className="text-2xl font-bold mb-4">CRUD d&apos;Usuaris</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mb-6">
-        {['first', 'last', 'email', 'phone', 'location', 'hobby'].map((field) => (
+        {['first', 'last', 'email', 'phone', 'hobby'].map((field) => (
           <input
             key={field}
             type="text"
@@ -85,6 +127,25 @@ export default function Users() {
             required
           />
         ))}
+
+        <div className="col-span-2">
+          <input
+            type="text"
+            name="location"
+            value={form.location}
+            onChange={handleLocationChange}
+            list="location-suggestions"
+            placeholder="Ciutat o adreça (ex: Barcelona, Girona...)"
+            className="p-2 border rounded w-full"
+            required
+          />
+          <datalist id="location-suggestions">
+            {locationSuggestions.map((loc, index) => (
+              <option key={index} value={loc} />
+            ))}
+          </datalist>
+        </div>
+
         <button
           type="submit"
           className="col-span-2 bg-green-600 text-white p-2 rounded hover:bg-green-700"
