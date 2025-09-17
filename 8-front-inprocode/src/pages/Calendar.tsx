@@ -1,4 +1,3 @@
-// src/pages/Calendar.tsx
 import { useEffect, useState } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -18,32 +17,57 @@ type Event = {
   start: string
   end: string
   backgroundColor?: string
+  userId?: string
+  userName?: string
+}
+
+type User = {
+  _id: string
+  first: string
+  last: string
 }
 
 export default function Calendar() {
   const [events, setEvents] = useState<Event[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [newEvent, setNewEvent] = useState({
     title: '',
     color: COLORS[0],
     startTime: '10:00',
-    endTime: '11:00'
+    endTime: '11:00',
+    userId: ''
   })
   const [selectInfo, setSelectInfo] = useState<DateSelectArg | null>(null)
 
-  // 🔁 Carregar esdeveniments des del backend
+  // 🔁 Carrega esdeveniments i usuaris al carregar
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/events`)
-        const data = await res.json()
-        setEvents(data)
+        const [eventsRes, usersRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/events`),
+          fetch(`${import.meta.env.VITE_API_URL}/api/users`)
+        ])
+        const eventsData = await eventsRes.json()
+        const usersData = await usersRes.json()
+
+        // 🔁 Enllaça el nom d'usuari amb l'esdeveniment
+        const eventsWithUserNames = eventsData.map((evt: Event) => {
+          const user = usersData.find((u: User) => u._id === evt.userId)
+          return {
+            ...evt,
+            userName: user ? `${user.first} ${user.last}` : ''
+          }
+        })
+
+        setEvents(eventsWithUserNames)
+        setUsers(usersData)
       } catch (error) {
-        console.error('Error carregant esdeveniments:', error)
+        console.error('❌ Error carregant dades:', error)
       }
     }
 
-    fetchEvents()
+    fetchAll()
   }, [])
 
   const handleDateSelect = (info: DateSelectArg) => {
@@ -51,40 +75,60 @@ export default function Calendar() {
     setModalOpen(true)
   }
 
-  const handleEventClick = (clickInfo: EventClickArg) => {
-    if (confirm(`Vols eliminar l'esdeveniment "${clickInfo.event.title}"?`)) {
-      setEvents((prev) => prev.filter((event) => event.id !== clickInfo.event.id))
-      // TODO: Cridar DELETE al backend si vols persistència real
+const handleEventClick = async (clickInfo: EventClickArg) => {
+  if (confirm(`Vols eliminar l'esdeveniment "${clickInfo.event.title}"?`)) {
+    const eventId = clickInfo.event.id
+
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/events/${eventId}`, {
+        method: 'DELETE'
+      })
+
+      setEvents((prev) => prev.filter((event) => event.id !== eventId))
+    } catch (err) {
+      console.error('❌ Error eliminant esdeveniment:', err)
+      alert('No s’ha pogut eliminar del servidor.')
     }
   }
+}
+
 
   const handleSubmit = async () => {
-    if (selectInfo && newEvent.title) {
+    if (selectInfo && newEvent.title && newEvent.userId) {
       const date = selectInfo.startStr.split('T')[0]
       const start = `${date}T${newEvent.startTime}`
       const end = `${date}T${newEvent.endTime}`
+      const selectedUser = users.find((u) => u._id === newEvent.userId)
 
-      const newEvt = {
+      const newEvt: Event = {
         id: uuidv4(),
         title: newEvent.title,
         start,
         end,
         backgroundColor: newEvent.color,
+        userId: newEvent.userId,
+        userName: selectedUser ? `${selectedUser.first} ${selectedUser.last}` : ''
       }
 
       try {
         await fetch(`${import.meta.env.VITE_API_URL}/api/events`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newEvt),
+          body: JSON.stringify(newEvt)
         })
 
         setEvents((prev) => [...prev, newEvt])
-        setNewEvent({ title: '', color: COLORS[0], startTime: '10:00', endTime: '11:00' })
+        setNewEvent({
+          title: '',
+          color: COLORS[0],
+          startTime: '10:00',
+          endTime: '11:00',
+          userId: ''
+        })
         setModalOpen(false)
         selectInfo.view.calendar.unselect()
       } catch (error) {
-        console.error('Error enviant esdeveniment al backend:', error)
+        console.error('❌ Error guardant esdeveniment:', error)
       }
     }
   }
@@ -92,6 +136,7 @@ export default function Calendar() {
   return (
     <div className="pt-16 p-4 relative">
       <h2 className="text-2xl font-semibold mb-4">📅 Calendari d'esdeveniments</h2>
+
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
@@ -102,7 +147,10 @@ export default function Calendar() {
         }}
         selectable={true}
         selectMirror={true}
-        events={events}
+        events={events.map(e => ({
+          ...e,
+          title: `${e.title}${e.userName ? ` (${e.userName})` : ''}`
+        }))}
         select={handleDateSelect}
         eventClick={handleEventClick}
         editable={true}
@@ -113,13 +161,16 @@ export default function Calendar() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
             <h3 className="text-xl font-semibold mb-4">Nou esdeveniment</h3>
+
             <input
               type="text"
               placeholder="Títol"
               value={newEvent.title}
               onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
               className="border p-2 rounded w-full mb-4"
+              required
             />
+
             <div className="flex gap-4 mb-4">
               <div className="flex flex-col w-1/2">
                 <label className="mb-1 text-sm">Hora inici:</label>
@@ -128,6 +179,7 @@ export default function Calendar() {
                   value={newEvent.startTime}
                   onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
                   className="border p-2 rounded"
+                  required
                 />
               </div>
               <div className="flex flex-col w-1/2">
@@ -137,9 +189,30 @@ export default function Calendar() {
                   value={newEvent.endTime}
                   onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
                   className="border p-2 rounded"
+                  required
                 />
               </div>
             </div>
+
+            {/* 🔽 Selector d'usuari */}
+            <div className="mb-4">
+              <label className="block mb-1 text-sm font-medium">Usuari:</label>
+              <select
+                value={newEvent.userId}
+                onChange={(e) => setNewEvent({ ...newEvent, userId: e.target.value })}
+                className="border p-2 rounded w-full"
+                required
+              >
+                <option value="">-- Selecciona un usuari --</option>
+                {users.map(user => (
+                  <option key={user._id} value={user._id}>
+                    {user.first} {user.last}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 🎨 Colors */}
             <div className="mb-4">
               <p className="mb-2">Color:</p>
               <div className="flex flex-wrap gap-2">
@@ -155,6 +228,8 @@ export default function Calendar() {
                 ))}
               </div>
             </div>
+
+            {/* 🔘 Botons */}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setModalOpen(false)}
