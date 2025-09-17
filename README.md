@@ -161,4 +161,4 @@ Charts: Chart.js
 
 Enric Abad Rovira
 React Student at IT Academy — Final React Project
-September 2025
+September 2025 
